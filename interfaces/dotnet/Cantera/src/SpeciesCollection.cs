@@ -48,13 +48,7 @@ public class SpeciesCollection : IReadOnlyList<Species>
         get => InteropUtil.GetDoubles(_handle, _species.Count,
             LibCantera.thermo3_getMassFractions);
 
-        set
-        {
-            var retval = LibCantera.thermo3_setMassFractions(_handle,
-                value.Length, value);
-
-            InteropUtil.CheckReturn(retval);
-        }
+        set => LibCantera.thermo3_setMassFractions(_handle,  value.Length, value);
     }
 
     /// <summary>
@@ -67,20 +61,14 @@ public class SpeciesCollection : IReadOnlyList<Species>
         get => InteropUtil.GetDoubles(_handle, _species.Count,
             LibCantera.thermo3_getMoleFractions);
 
-        set
-        {
-            var retval = LibCantera.thermo3_setMoleFractions(_handle,
-                value.Length, value);
-
-            InteropUtil.CheckReturn(retval);
-        }
+        set => LibCantera.thermo3_setMoleFractions(_handle, value.Length, value);
     }
 
     internal SpeciesCollection(ThermoPhaseHandle handle)
     {
         _handle = handle;
 
-        var count = InteropUtil.CheckReturn(LibCantera.thermo3_nSpecies(handle));
+        var count = LibCantera.thermo3_nSpecies(handle);
 
         var pool = MemoryPool<double>.Shared;
 

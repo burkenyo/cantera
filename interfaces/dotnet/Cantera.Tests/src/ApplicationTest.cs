@@ -136,7 +136,7 @@ public class ApplicationTest
     /// </summary>
     static void ProduceRealLogOutput(string message)
     {
-        InteropUtil.CheckReturn(LibCantera.ct3_writeLog(message + "\n"));
+        LibCantera.ct3_writeLog(message + "\n");
     }
 
     /// <summary>

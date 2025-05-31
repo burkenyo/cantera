@@ -51,6 +51,10 @@ class CsFunc(Func):
         """Identify any parameters that take strings."""
         return any(p.p_type == 'string' for p in self.arglist)
 
+    def returns_handle(self) -> bool:
+        """True if this function returns a handle."""
+        return self.ret_type.endswith("Handle")
+
 
 class CSharpSourceGenerator(SourceGenerator):
     """The SourceGenerator for scaffolding C# files for the .NET interface"""
@@ -90,13 +94,9 @@ class CSharpSourceGenerator(SourceGenerator):
                 getter=getter.name, setter=setter.name)
 
         if prop_type == "string":
-            # for get-string type functions we need to look up the type of the second
-            # (index 1) param for a cast because sometimes it's an int and other times
-            # it's a nuint (size_t)
             template = _LOADER.from_string(self._templates["csharp-property-string"])
             return template.render(
-                cs_name=cs_name, p_type=getter.arglist[1].p_type,
-                getter=getter.name, setter=setter.name)
+                cs_name=cs_name, getter=getter.name, setter=setter.name)
 
         _LOGGER.critical(f"Unable to scaffold properties of type {prop_type!r}!")
         sys.exit(1)
@@ -190,7 +190,9 @@ class CSharpSourceGenerator(SourceGenerator):
         template = _LOADER.from_string(self._templates["csharp-interop-func"])
         function_list = [
             template.render(has_string_param=func.has_string_param(),
-                            declaration=func.declaration())
+                            declaration=func.declaration(),
+                            check_return=(not func.is_handle_release_func
+                                          and not func.returns_handle()))
             for func in cs_funcs]
 
         file_name = f"Interop.LibCantera.{header_file}.g.cs"
