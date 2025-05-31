@@ -12,14 +12,18 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <RootDir>$([MSBuild]::NormalizePath($(MSBuildProjectDirectory)/../../../))</RootDir>
-    <LibDir>$([MSBuild]::NormalizePath($(RootDir)build/lib))</LibDir>
-    <DataDir>$([MSBuild]::NormalizePath($(RootDir)data))</DataDir>
+    <LibDir>$(RootDir)build/lib</LibDir>
+    <DataDir>$(RootDir)data</DataDir>
+    <!-- Don’t use BaseIntermediateOutputPath because it may not have been calculated yet -->
+    <SourceGenDir>$(MSBuildProjectDirectory)/obj/sourcegen/</SourceGenDir>
   </PropertyGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Cantera.Tests" />
 
     <None Include="$(DataDir)/*" CopyToOutputDirectory="PreserveNewest" LinkBase="data/" />
+
+    <SourceGenFiles Include="$(SourceGenDir)*" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOsPlatform(Windows))">
@@ -33,16 +37,15 @@
   </ItemGroup>
 
   <Target Name="GenerateInterop" BeforeTargets="CoreCompile">
-    <PropertyGroup>
-      <GeneratedCodeDir>$([MSBuild]::NormalizePath($(BaseIntermediateOutputPath)/sourcegen/))</GeneratedCodeDir>
-    </PropertyGroup>
-
-    <Exec Command="python3 -m sourcegen --api=csharp --output=$(GeneratedCodeDir) --root=$(RootDir)"
-      Condition="'$(GenerateInterop)' == 'true' Or !Exists('$(GeneratedCodeDir)')"/>
+    <Exec Command="python3 -m sourcegen --api=csharp --output=$(SourceGenDir) --root=$(RootDir)"
+      Condition="'$(GenerateInterop)' == 'true' Or !Exists('@(SourceGenFiles)')" />
 
     <ItemGroup>
-      <Compile Remove="$(GeneratedCodeDir)*.cs" />
-      <Compile Include="$(GeneratedCodeDir)*.cs" />
+      <Compile Include="$(SourceGenDir)*" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="CleanSourceGen" BeforeTargets="CoreClean">
+    <Delete Files="@(SourceGenFiles)" />
   </Target>
 </Project>
