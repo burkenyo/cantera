@@ -25,14 +25,6 @@ static class InteropUtil
         where THandle : CanteraHandle;
 
     /// <summary>
-    /// Represents a function that fills a byte buffer representing a native string.
-    /// </summary>
-    /// <remarks>
-    /// The Cantera C API specifies the size as an int.
-    /// </remarks>
-    public delegate int FillStringBufferFunc(int size, Span<byte> buffer);
-
-    /// <summary>
     /// Checks the return code of the lib cantera call and throws
     /// a CanteraException if necessary
     /// </summary>
@@ -106,63 +98,6 @@ static class InteropUtil
         where T : CanteraHandle
     {
         fillBufferFunc(handle, span.Length, span);
-    }
-
-    [SuppressMessage("Reliability", "CA2014:NoStackallocInLoops",
-        Justification = "Loop is executed at most twice.")]
-    public static string GetString(int initialSize, FillStringBufferFunc func)
-    {
-        // take up to two tries
-        // 1) use the initial size
-        //    if the initial size was large enough, return the string
-        //    if the initial size was not large enough ...
-        // 2) try again with the needed size
-        //    if the needed size was large enough, return the string
-        //    otherwise, catastrophe, throw!
-        for (var i = 0; i < 2; i++)
-        {
-            int neededSize;
-
-            if (initialSize <= 120)
-            {
-                Span<byte> span = stackalloc byte[initialSize];
-                if (TryGetString(span, func, out var value, out neededSize))
-                {
-                    return value;
-                }
-            }
-            else
-            {
-                using (MemoryPool<byte>.Shared.Rent(initialSize, out var span))
-                {
-                    if (TryGetString(span, func, out var value, out neededSize))
-                    {
-                        return value;
-                    }
-                }
-            }
-
-            initialSize = neededSize;
-        }
-
-        throw new InvalidOperationException(
-            "Could not retrieve a string value from Cantera!");
-
-        static bool TryGetString(Span<byte> span, FillStringBufferFunc func,
-            [NotNullWhen(true)] out string? value, out int neededSize)
-        {
-            var initialSize = span.Length;
-            neededSize = func(initialSize, span);
-
-            if (initialSize >= neededSize)
-            {
-                value = Encoding.UTF8.GetString(span[..(neededSize - 1)]); // trim null byte
-                return true;
-            }
-
-            value = null;
-            return false;
-        }
     }
 
     public static int GetInteropBool(bool value) =>
